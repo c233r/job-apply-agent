@@ -16,7 +16,6 @@
 - **岗位抓取**：优先走招聘站点接口（Moka / 北森 / 飞书 / 通用门户），拿不到时回退 Playwright 浏览器 + LLM 抽取。
 - **简历匹配**：LLM 对「岗位 JD × 简历」逐条打分，输出命中点、差距与建议；支持多份简历变体，自动选最匹配的一份。
 - **已投递去重**：公司名清洗 + 字符相似度 / embedding 余弦相似度，重复公司自动跳过。
-- **表单预填**：截图 + 多模态模型识别表单，按简历**原文**逐字段填写、上传简历与附件，并复查剩余必填项。
 - **可断点续跑**：SQLite 缓存公司信息、已查找公司、投递状态；重复执行不会重复消耗 token。
 
 ## 工作流程
@@ -34,10 +33,7 @@ data/enriched/companies_enriched.csv
 data/jobs/jobs.jsonl
    │  ④ select  分成 applicable / failed / skipped
    ▼
-data/output/applicable_companies.json
-   │  ⑤ fill    打开投递页 → 识别表单 → 按简历预填 → 人工检查
-   ▼
-data/output/report.md + fill_summary.json
+data/output/applicable_companies.json + report.md
 ```
 
 `python run_pipeline.py run` 会执行 ①→④ 并生成报告；`fill` 单独执行，因为投递环节需要人工在场。
@@ -129,7 +125,6 @@ python run_pipeline.py fetch                  # 抓表
 python run_pipeline.py enrich --limit 20      # 先小批量补全
 python run_pipeline.py scrape --limit 3       # 先抓 3 家试试
 python run_pipeline.py select                 # 查看可投递公司
-python run_pipeline.py fill --limit-each 3    # 逐家预填，人工检查
 ```
 
 每一步都会打印进度并落盘；失败信息会写进 `scrape_failures.jsonl`，便于人工排查。
@@ -143,7 +138,7 @@ python run_pipeline.py fill --limit-each 3    # 逐家预填，人工检查
 | `python run_pipeline.py scrape [--limit N] [--names A,B] [--force]` | 抓岗位并匹配；`--force` 忽略「已查找」缓存 |
 | `python run_pipeline.py match [--limit N]` | 独立匹配（`match.enabled: true` 时才在 `run` 中执行） |
 | `python run_pipeline.py select` | 生成 applicable / failed / skipped 三个 JSON |
-| `python run_pipeline.py fill [--limit-each N] [--auto-confirm]` | 浏览器预填；`--auto-confirm` 跳过开始前确认 |
+| `python run_pipeline.py fill [--limit-each N] [--auto-confirm]` | 浏览器预填（人工确认后提交）；`--auto-confirm` 跳过开始前确认 |
 | `python run_pipeline.py run [--limit N] [--no-lists] [--force]` | fetch → enrich → scrape → [match] → select → report |
 
 `--limit` 限制处理的公司数（测试用），`--names 美团,腾讯` 按公司名过滤，`--no-lists` 跳过 500 强名单匹配。
