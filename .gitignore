@@ -1,0 +1,47 @@
+# ---------- 本地配置与密钥 ----------
+config.yaml
+.env
+*.local.yaml
+
+# ---------- 运行产物（含个人信息） ----------
+data/applied/
+data/attachments/
+data/browser_profile/
+data/cache/
+data/enriched/
+data/jobs/
+data/output/
+data/raw/
+data/resume/
+data/screenshots/
+data/*.db
+data/*.db-wal
+data/*.db-shm
+
+# ---------- Python ----------
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+.python-version
+
+# ---------- 缓存与工具 ----------
+.cache/
+.tmp/
+.py_libs/
+.pipcache/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# ---------- 编辑器 / 系统 ----------
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# ---------- 实验与日志 ----------
+_scratch/
+*.log

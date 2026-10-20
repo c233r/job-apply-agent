@@ -1,0 +1,14 @@
+# ===== 核心依赖 =====
+requests>=2.31            # HTTP：腾讯文档智能表、行情接口、ATS 接口
+PyYAML>=6.0               # config.yaml 解析
+cryptography>=42.0        # Moka 招聘接口 AES-CBC 解密
+playwright>=1.40          # 浏览器自动化：默认使用系统 Chrome（channel=chrome），无需 playwright install
+pypdf>=4.0                # PDF 简历解析（纯 Python，首选）
+pdfplumber>=0.11          # PDF 解析兜底（pypdf 取不到文字时）
+python-docx>=1.1          # Word 简历解析
+
+# ===== 可选依赖 =====
+fastembed>=0.3            # 本地 embedding 小模型（CPU/ONNX，公司名语义去重）；
+                          # 不安装时自动回退字符相似度，功能仍可用
+numpy>=1.24               # embedding 相似度向量化计算（fastembed 会一并安装）
+# sentence-transformers   # 备选本地 embedding 后端（依赖 torch，体积大）

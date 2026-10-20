@@ -1,0 +1,123 @@
+# ============================================================
+# 简历投递自动化 Agent 配置模板
+# 1) 复制为 config.yaml：  cp config.example.yaml config.yaml
+# 2) 填入自己的文档链接、API Key 与简历路径
+# config.yaml 含密钥/个人信息，已在 .gitignore 忽略，请勿提交。
+# ============================================================
+
+# ---------- 数据源：腾讯文档「智能表」 ----------
+# 支持公开分享的个人版智能表（无需登录）。可配置多份，name 会写入抓取结果用于区分来源。
+docs:
+  - url: https://docs.qq.com/smartsheet/YOUR_DOC_ID
+    name: 我的秋招信息汇总表
+  # - url: https://docs.qq.com/smartsheet/ANOTHER_DOC_ID
+  #   name: 内推信息合集
+
+fetch:
+  concurrency: 32            # 并发读取子表的协程数
+
+enrich:
+  concurrency: 8             # 公司级并发补全数
+
+# ---------- 已投递去重 ----------
+# 每次执行都会重新读取；支持 xlsx / csv / txt（xlsx 取含「公司」的列）
+applied_xlsx: data/applied/applied_companies.xlsx
+applied_threshold: 0.85      # 公司名相似度 >= 阈值即视为已投递
+
+# ---------- 本地名单 ----------
+lists:
+  china500: data/lists/china500.txt   # 中国500强名单（一行一个公司名）
+  threshold: 0.85                     # 名单匹配阈值
+
+# ---------- LLM（DeepSeek，OpenAI 兼容） ----------
+llm:
+  provider: deepseek
+  base_url: https://api.deepseek.com
+  api_key: ""                # 填入你的 DeepSeek API Key（留空则 LLM 相关步骤会提示未配置）
+  model: deepseek-chat
+  timeout: 60
+  debug: false               # true = 打印模型原始返回，排查用
+  max_tokens: 0              # 0 = 不限制输出
+
+# ---------- 公司名相似度（embedding） ----------
+# backend: local = 本地小模型（CPU，进程内只加载一次，推荐）
+# backend: api   = OpenAI 兼容的 embedding 接口
+embedding:
+  backend: local
+  model: BAAI/bge-small-zh-v1.5   # 24M 参数、512 维，中文效果好、CPU 可跑（需 pip install fastembed）
+  device: cpu
+  batch_size: 32
+  threads: 4
+  workers: 4                      # >1 时启用多进程；受限环境会自动回退单进程
+  model_path: ""                  # 可选：本地模型目录（预下载后填写，跳过在线下载）
+  # 使用 api 方式时填写：
+  base_url: ""
+  api_key: ""
+
+# ---------- 浏览器 ----------
+browser:
+  channel: chrome            # chrome（系统 Chrome，免下载）| chromium（需 playwright install chromium）
+  headless: false            # 投递建议 false，便于人工扫码/确认
+  user_data_dir: data/browser_profile   # 复用登录态
+  timeout_ms: 30000
+
+# ---------- 页面交互 Agent ----------
+agent:
+  max_rounds: 10             # 每个招聘页面的最大交互轮数
+  use_screenshot: true       # 每步截图交给多模态模型判断页面
+  vision_model: deepseek-flash
+  # 视觉模型若使用另一家 OpenAI 兼容供应商再填下面两项，留空则复用 llm 配置
+  vision_base_url: ""
+  vision_api_key: ""
+  screenshot_dir: data/screenshots
+  clear_screenshots: true    # 运行结束后删除截图
+  max_tokens: 0
+
+# ---------- 匹配 ----------
+matching:
+  min_score: 60              # 独立 match 阶段的分数阈值
+
+match:
+  enabled: false             # false = 跳过独立 match（scrape 阶段已完成匹配）
+  concurrency: 8
+
+# ---------- 抓取岗位（scrape） ----------
+scrape:
+  match_threshold: 50        # 岗位匹配分阈值（多份简历取较高分）
+  top_k: 10                  # 每家公司最多保留的岗位数
+  max_positions: 100         # 每家公司最多查看的岗位数
+  concurrency: 8             # 匹配协程并发度
+  browser_fallback: false    # 未适配站点是否回退到浏览器抓取
+  max_matched_companies: 10  # 找到 N 家「有岗位入选」的公司后停止
+  skip_processed: true       # 跳过已查找过的公司
+  use_screenshot: false      # scrape 用纯文本决策即可，省视觉模型费用
+  skip_domains:              # 直接跳过的域名（公众号推文不是岗位列表页）
+    - mp.weixin.qq.com
+
+# ---------- 填写投递（fill） ----------
+fill:
+  use_screenshot: true       # 用截图 + 多模态模型识别表单
+  keep_pages: true           # 每家公司新开标签页，填完保留供人工检查
+
+# ---------- 岗位偏好调权（默认关闭） ----------
+preference:
+  algo_penalty: 0            # 0 = 不降权算法岗
+  dev_bonus: 0               # 0 = 不加分开发/数据/测试岗
+  # dev_keywords: ["开发", "研发", "后端", "前端", "测试", "数据", "全栈", "软件"]
+  # algo_keywords: ["算法", "机器学习", "深度学习", "大模型", "多模态", "推荐", "搜索", "CV", "NLP"]
+
+# ---------- 简历与附件 ----------
+resume:
+  path: data/sample_resume.txt   # 换成自己的简历（txt / pdf / docx）
+  alternates: []                 # 其它方向的简历变体，按岗位匹配后自动选用
+  # alternates:
+  #   - data/resume/我的简历-数据方向.pdf
+  attachments_dir: data/attachments   # 证书/证明材料目录（投递时上传）
+
+# ---------- 输出目录 ----------
+paths:
+  data_raw: data/raw
+  data_enriched: data/enriched
+  data_jobs: data/jobs
+  data_cache: data/cache
+  data_output: data/output
